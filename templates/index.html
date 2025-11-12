@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Analyze your website's SEO effectiveness and get a score from 0-100 with actionable recommendations">
+    <title>SEO Analyzer - Test Your Website's SEO Effectiveness</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔍 SEO Analyzer</h1>
+            <p class="subtitle">Analyze your website's SEO effectiveness and get actionable recommendations</p>
+        </header>
+
+        <main class="main-content">
+            <div class="input-section">
+                <form id="analyzeForm" class="analyze-form">
+                    <div class="form-group">
+                        <label for="urlInput">Enter Website URL</label>
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="urlInput" 
+                                name="url" 
+                                placeholder="https://example.com"
+                                required
+                                autocomplete="url"
+                            >
+                            <button type="submit" id="analyzeBtn" class="btn-primary">
+                                Analyze SEO
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing website... This may take a few seconds</p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div id="resultsSection" class="results-section" style="display: none;">
+                <div class="score-card">
+                    <h2>SEO Score</h2>
+                    <div class="score-display">
+                        <div class="score-circle" id="scoreCircle">
+                            <span class="score-number" id="scoreNumber">0</span>
+                            <span class="score-max">/100</span>
+                        </div>
+                        <p class="score-label" id="scoreLabel">Poor</p>
+                    </div>
+                    <p class="analyzed-url">
+                        <strong>Analyzed URL:</strong> 
+                        <a id="analyzedUrl" href="#" target="_blank" rel="noopener noreferrer"></a>
+                    </p>
+                </div>
+
+                <div class="breakdown-section">
+                    <h3>SEO Factors Breakdown</h3>
+                    <div id="breakdownList" class="breakdown-list"></div>
+                </div>
+
+                <div class="recommendations-section">
+                    <h3>Recommendations for Improvement</h3>
+                    <div id="recommendationsList" class="recommendations-list"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Built with Flask • Analyzes on-page SEO and technical searchability</p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('analyzeForm');
+        const urlInput = document.getElementById('urlInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const scoreNumber = document.getElementById('scoreNumber');
+        const scoreCircle = document.getElementById('scoreCircle');
+        const scoreLabel = document.getElementById('scoreLabel');
+        const analyzedUrl = document.getElementById('analyzedUrl');
+        const breakdownList = document.getElementById('breakdownList');
+        const recommendationsList = document.getElementById('recommendationsList');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            if (!url) {
+                showError('Please enter a URL');
+                return;
+            }
+
+            // Reset UI
+            hideError();
+            hideResults();
+            showLoading();
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                hideLoading();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'An error occurred during analysis');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Failed to analyze the website. Please check the URL and try again.');
+                console.error('Error:', error);
+            }
+        });
+
+        function showLoading() {
+            loadingIndicator.style.display = 'block';
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+        }
+
+        function hideLoading() {
+            loadingIndicator.style.display = 'none';
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Analyze SEO';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        function hideResults() {
+            resultsSection.style.display = 'none';
+        }
+
+        function displayResults(data) {
+            // Display score
+            const score = data.score;
+            scoreNumber.textContent = score;
+            
+            // Update score circle color and label
+            let scoreClass = '';
+            let label = '';
+            
+            if (score >= 80) {
+                scoreClass = 'excellent';
+                label = 'Excellent';
+            } else if (score >= 60) {
+                scoreClass = 'good';
+                label = 'Good';
+            } else if (score >= 40) {
+                scoreClass = 'fair';
+                label = 'Fair';
+            } else {
+                scoreClass = 'poor';
+                label = 'Poor';
+            }
+            
+            scoreCircle.className = 'score-circle ' + scoreClass;
+            scoreLabel.textContent = label;
+            scoreLabel.className = 'score-label ' + scoreClass;
+            
+            // Display analyzed URL
+            analyzedUrl.href = data.url;
+            analyzedUrl.textContent = data.url;
+            
+            // Display breakdown
+            breakdownList.innerHTML = '';
+            data.breakdown.forEach(item => {
+                const breakdownItem = document.createElement('div');
+                breakdownItem.className = 'breakdown-item';
+                
+                const statusClass = item.status;
+                const statusIcon = getStatusIcon(item.status);
+                
+                breakdownItem.innerHTML = `
+                    <div class="breakdown-header">
+                        <span class="breakdown-name">
+                            <span class="status-icon ${statusClass}">${statusIcon}</span>
+                            ${item.name}
+                        </span>
+                        <span class="breakdown-score ${statusClass}">
+                            ${item.score}/${item.max_score}
+                        </span>
+                    </div>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-progress ${statusClass}" 
+                             style="width: ${(item.score / item.max_score) * 100}%">
+                        </div>
+                    </div>
+                `;
+                
+                breakdownList.appendChild(breakdownItem);
+            });
+            
+            // Display recommendations
+            recommendationsList.innerHTML = '';
+            
+            if (data.recommendations.length === 0) {
+                recommendationsList.innerHTML = `
+                    <div class="no-recommendations">
+                        <span class="success-icon">✓</span>
+                        <p>Great job! Your page has excellent SEO with no critical issues.</p>
+                    </div>
+                `;
+            } else {
+                data.recommendations.forEach(rec => {
+                    const recItem = document.createElement('div');
+                    recItem.className = 'recommendation-item ' + rec.category.toLowerCase();
+                    
+                    const categoryIcon = getCategoryIcon(rec.category);
+                    
+                    recItem.innerHTML = `
+                        <div class="recommendation-header">
+                            <span class="category-badge ${rec.category.toLowerCase()}">
+                                ${categoryIcon} ${rec.category}
+                            </span>
+                            <span class="factor-name">${rec.factor}</span>
+                        </div>
+                        <div class="recommendation-content">
+                            <p class="issue"><strong>Issue:</strong> ${rec.issue}</p>
+                            <p class="recommendation"><strong>Recommendation:</strong> ${rec.recommendation}</p>
+                        </div>
+                    `;
+                    
+                    recommendationsList.appendChild(recItem);
+                });
+            }
+            
+            // Show results
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function getStatusIcon(status) {
+            switch (status) {
+                case 'pass':
+                    return '✓';
+                case 'warning':
+                    return '⚠';
+                case 'fail':
+                    return '✗';
+                default:
+                    return '○';
+            }
+        }
+
+        function getCategoryIcon(category) {
+            switch (category.toLowerCase()) {
+                case 'critical':
+                    return '⚠';
+                case 'warning':
+                    return '⚡';
+                case 'info':
+                    return 'ℹ';
+                default:
+                    return '•';
+            }
+        }
+    </script>
+</body>
+</html>
+
