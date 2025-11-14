@@ -2,6 +2,8 @@
 
 A Python Flask web application that analyzes and rates the SEO effectiveness of a website on a scale from 0 to 100, with specific actionable recommendations for improvement.
 
+**🚀 Ready for deployment on PythonAnywhere.com** - See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
 ## Features
 
 ### On-Page SEO Analysis (55 points)
@@ -204,12 +206,30 @@ Feel free to enhance this project by:
 
 This project is open source and available for educational and commercial use.
 
+## Deployment
+
+### Deploy to PythonAnywhere
+
+This app is ready to deploy to PythonAnywhere.com. See the detailed deployment guide:
+
+📖 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete step-by-step deployment instructions
+
+**Quick steps:**
+1. Sign up at PythonAnywhere.com (free tier available)
+2. Upload your code or use Git
+3. Set up virtual environment and install dependencies
+4. Configure WSGI file
+5. Reload and your app is live!
+
+**Note:** Free PythonAnywhere accounts can only analyze whitelisted websites. For full functionality, a paid account ($5/month) is recommended.
+
 ## Support
 
 For issues or questions:
 1. Check the Troubleshooting section above
 2. Review the code comments in `seo_analyzer.py` and `app.py`
 3. Ensure all dependencies are correctly installed
+4. For deployment issues, see [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ---
 
