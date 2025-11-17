@@ -22,6 +22,14 @@ A Python Flask web application that analyzes and rates the SEO effectiveness of 
 - **Mobile-Friendly** - Checks viewport meta tag and responsive indicators
 - **Page Load Speed** - Measures response time
 
+### Keyword Audit
+Advanced keyword analysis showing:
+- **Top Single Keywords** - The 15 most frequent keywords on your page
+- **2-Word Phrases** - The 10 most common two-word combinations
+- **3-Word Phrases** - The 5 most common three-word phrases
+- **Word Statistics** - Total words and unique vocabulary count
+- Excludes common stop words for meaningful insights
+
 ### Actionable Recommendations
 The analyzer provides specific recommendations for every issue found, categorized by:
 - **Critical** - Issues that severely impact SEO

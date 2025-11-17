@@ -68,6 +68,32 @@
                     <div id="breakdownList" class="breakdown-list"></div>
                 </div>
 
+                <div class="keywords-section">
+                    <h3>🔑 Keyword Audit</h3>
+                    <p class="section-description">Top keywords and phrases found on your page. Click any keyword to see where it appears!</p>
+                    
+                    <div class="keywords-stats">
+                        <div class="keyword-stat">
+                            <span class="stat-number" id="totalWords">0</span>
+                            <span class="stat-label">Total Words</span>
+                        </div>
+                        <div class="keyword-stat">
+                            <span class="stat-number" id="uniqueWords">0</span>
+                            <span class="stat-label">Unique Words</span>
+                        </div>
+                    </div>
+
+                    <div class="keywords-tabs">
+                        <button class="keyword-tab active" data-tab="single">Single Keywords</button>
+                        <button class="keyword-tab" data-tab="two-word">2-Word Phrases</button>
+                        <button class="keyword-tab" data-tab="three-word">3-Word Phrases</button>
+                    </div>
+
+                    <div id="singleKeywords" class="keywords-content active"></div>
+                    <div id="twoWordPhrases" class="keywords-content"></div>
+                    <div id="threeWordPhrases" class="keywords-content"></div>
+                </div>
+
                 <div class="recommendations-section">
                     <h3>Recommendations for Improvement</h3>
                     <div id="recommendationsList" class="recommendations-list"></div>
@@ -78,6 +104,20 @@
         <footer class="footer">
             <p>Built with Flask • Analyzes on-page SEO and technical searchability</p>
         </footer>
+    </div>
+
+    <!-- Keyword Context Modal -->
+    <div id="keywordModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalKeyword"></h3>
+                <button class="modal-close" onclick="closeKeywordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Here's where "<span id="modalKeywordName"></span>" appears on the page:</p>
+                <div id="modalContextList" class="context-list"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -218,6 +258,63 @@
                 breakdownList.appendChild(breakdownItem);
             });
             
+            // Display keywords
+            if (data.elements && data.elements.keywords) {
+                const keywords = data.elements.keywords;
+                
+                // Display stats
+                document.getElementById('totalWords').textContent = keywords.total_words;
+                document.getElementById('uniqueWords').textContent = keywords.unique_words;
+                
+                // Display single keywords
+                const singleKeywordsDiv = document.getElementById('singleKeywords');
+                singleKeywordsDiv.innerHTML = '';
+                keywords.single_keywords.forEach(([keyword, count]) => {
+                    const keywordItem = document.createElement('div');
+                    keywordItem.className = 'keyword-item clickable';
+                    keywordItem.innerHTML = `
+                        <span class="keyword-text">${keyword}</span>
+                        <span class="keyword-count">${count}</span>
+                    `;
+                    keywordItem.addEventListener('click', () => {
+                        showKeywordContext(keyword, keywords.keyword_contexts[keyword] || []);
+                    });
+                    singleKeywordsDiv.appendChild(keywordItem);
+                });
+                
+                // Display 2-word phrases
+                const twoWordPhrasesDiv = document.getElementById('twoWordPhrases');
+                twoWordPhrasesDiv.innerHTML = '';
+                keywords.two_word_phrases.forEach(([phrase, count]) => {
+                    const phraseItem = document.createElement('div');
+                    phraseItem.className = 'keyword-item clickable';
+                    phraseItem.innerHTML = `
+                        <span class="keyword-text">${phrase}</span>
+                        <span class="keyword-count">${count}</span>
+                    `;
+                    phraseItem.addEventListener('click', () => {
+                        showKeywordContext(phrase, keywords.phrase_contexts[phrase] || []);
+                    });
+                    twoWordPhrasesDiv.appendChild(phraseItem);
+                });
+                
+                // Display 3-word phrases
+                const threeWordPhrasesDiv = document.getElementById('threeWordPhrases');
+                threeWordPhrasesDiv.innerHTML = '';
+                keywords.three_word_phrases.forEach(([phrase, count]) => {
+                    const phraseItem = document.createElement('div');
+                    phraseItem.className = 'keyword-item clickable';
+                    phraseItem.innerHTML = `
+                        <span class="keyword-text">${phrase}</span>
+                        <span class="keyword-count">${count}</span>
+                    `;
+                    phraseItem.addEventListener('click', () => {
+                        showKeywordContext(phrase, keywords.long_phrase_contexts[phrase] || []);
+                    });
+                    threeWordPhrasesDiv.appendChild(phraseItem);
+                });
+            }
+            
             // Display recommendations
             recommendationsList.innerHTML = '';
             
@@ -282,6 +379,83 @@
                     return '•';
             }
         }
+
+        // Keyword tabs functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('keyword-tab')) {
+                // Remove active class from all tabs and contents
+                document.querySelectorAll('.keyword-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.keywords-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Add active class to clicked tab
+                e.target.classList.add('active');
+                
+                // Show corresponding content
+                const tabType = e.target.getAttribute('data-tab');
+                if (tabType === 'single') {
+                    document.getElementById('singleKeywords').classList.add('active');
+                } else if (tabType === 'two-word') {
+                    document.getElementById('twoWordPhrases').classList.add('active');
+                } else if (tabType === 'three-word') {
+                    document.getElementById('threeWordPhrases').classList.add('active');
+                }
+            }
+        });
+
+        // Show keyword context modal
+        function showKeywordContext(keyword, contexts) {
+            const modal = document.getElementById('keywordModal');
+            const modalKeyword = document.getElementById('modalKeyword');
+            const modalKeywordName = document.getElementById('modalKeywordName');
+            const modalContextList = document.getElementById('modalContextList');
+            
+            modalKeyword.textContent = keyword;
+            modalKeywordName.textContent = keyword;
+            
+            // Clear previous contexts
+            modalContextList.innerHTML = '';
+            
+            if (contexts.length === 0) {
+                modalContextList.innerHTML = '<p class="no-contexts">No specific contexts found.</p>';
+            } else {
+                contexts.forEach((context, index) => {
+                    const contextItem = document.createElement('div');
+                    contextItem.className = 'context-item';
+                    
+                    // Highlight the keyword in the context
+                    const highlightedContext = context.replace(
+                        new RegExp(`(${keyword})`, 'gi'),
+                        '<mark>$1</mark>'
+                    );
+                    
+                    contextItem.innerHTML = `
+                        <span class="context-number">${index + 1}.</span>
+                        <span class="context-text">${highlightedContext}</span>
+                    `;
+                    modalContextList.appendChild(contextItem);
+                });
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        // Close keyword context modal
+        function closeKeywordModal() {
+            const modal = document.getElementById('keywordModal');
+            modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('keywordModal');
+            if (e.target === modal) {
+                closeKeywordModal();
+            }
+        });
     </script>
 </body>
 </html>

@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 from urllib.parse import urlparse
+from collections import Counter
 
 
 def analyze_url(url):
@@ -72,6 +73,120 @@ def fetch_page(url):
     is_https = response.url.startswith('https://')
     
     return response.text, response.url, is_https
+
+
+def extract_keywords(soup):
+    """
+    Extracts and analyzes keywords from the page content
+    Returns top single keywords and phrases with their frequency
+    """
+    # Common stop words to exclude
+    stop_words = {
+        'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
+        'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+        'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+        'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their',
+        'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go',
+        'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know',
+        'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them',
+        'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over',
+        'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work',
+        'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these',
+        'give', 'day', 'most', 'us', 'is', 'are', 'was', 'been', 'has', 'had',
+        'were', 'said', 'did', 'having', 'may', 'should', 'am', 'here', 'more'
+    }
+    
+    # Extract text from main content areas (exclude nav, footer, header, script, style)
+    for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+        tag.decompose()
+    
+    # Get text content
+    text_content = soup.get_text()
+    
+    # Split into sentences for context (before cleaning)
+    sentences = re.split(r'[.!?]+', text_content)
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 20]  # Keep meaningful sentences
+    
+    # Clean and tokenize
+    text_content = text_content.lower()
+    text_content = re.sub(r'[^\w\s]', ' ', text_content)  # Remove punctuation
+    text_content = re.sub(r'\s+', ' ', text_content)  # Normalize whitespace
+    
+    # Extract single words
+    words = text_content.split()
+    words = [word for word in words if len(word) > 3 and word not in stop_words and not word.isdigit()]
+    
+    # Count single keyword frequency
+    word_freq = Counter(words)
+    top_single_keywords = word_freq.most_common(15)
+    
+    # Find contexts for top keywords
+    keyword_contexts = {}
+    for keyword, count in top_single_keywords:
+        contexts = []
+        for sentence in sentences:
+            if keyword.lower() in sentence.lower():
+                # Trim long sentences
+                trimmed = sentence[:150] + '...' if len(sentence) > 150 else sentence
+                contexts.append(trimmed)
+                if len(contexts) >= 5:  # Limit to 5 examples
+                    break
+        keyword_contexts[keyword] = contexts
+    
+    # Extract 2-word phrases
+    two_word_phrases = []
+    for i in range(len(words) - 1):
+        if words[i] not in stop_words and words[i+1] not in stop_words:
+            phrase = f"{words[i]} {words[i+1]}"
+            two_word_phrases.append(phrase)
+    
+    phrase_freq = Counter(two_word_phrases)
+    top_phrases = phrase_freq.most_common(10)
+    
+    # Find contexts for top 2-word phrases
+    phrase_contexts = {}
+    for phrase, count in top_phrases:
+        contexts = []
+        for sentence in sentences:
+            if phrase.lower() in sentence.lower():
+                trimmed = sentence[:150] + '...' if len(sentence) > 150 else sentence
+                contexts.append(trimmed)
+                if len(contexts) >= 5:
+                    break
+        phrase_contexts[phrase] = contexts
+    
+    # Extract 3-word phrases
+    three_word_phrases = []
+    for i in range(len(words) - 2):
+        if words[i] not in stop_words and words[i+1] not in stop_words and words[i+2] not in stop_words:
+            phrase = f"{words[i]} {words[i+1]} {words[i+2]}"
+            three_word_phrases.append(phrase)
+    
+    long_phrase_freq = Counter(three_word_phrases)
+    top_long_phrases = long_phrase_freq.most_common(5)
+    
+    # Find contexts for top 3-word phrases
+    long_phrase_contexts = {}
+    for phrase, count in top_long_phrases:
+        contexts = []
+        for sentence in sentences:
+            if phrase.lower() in sentence.lower():
+                trimmed = sentence[:150] + '...' if len(sentence) > 150 else sentence
+                contexts.append(trimmed)
+                if len(contexts) >= 5:
+                    break
+        long_phrase_contexts[phrase] = contexts
+    
+    return {
+        'single_keywords': top_single_keywords,
+        'two_word_phrases': top_phrases,
+        'three_word_phrases': top_long_phrases,
+        'total_words': len(words),
+        'unique_words': len(set(words)),
+        'keyword_contexts': keyword_contexts,
+        'phrase_contexts': phrase_contexts,
+        'long_phrase_contexts': long_phrase_contexts
+    }
 
 
 def parse_seo_elements(html, url, is_https, response_time):
@@ -174,6 +289,12 @@ def parse_seo_elements(html, url, is_https, response_time):
     
     # 12. Page Load Speed
     elements['response_time'] = response_time
+    
+    # 13. Keyword Analysis
+    # Create a fresh soup for keyword extraction (previous one was modified)
+    soup_for_keywords = BeautifulSoup(html, 'lxml')
+    keyword_data = extract_keywords(soup_for_keywords)
+    elements['keywords'] = keyword_data
     
     return elements
 
