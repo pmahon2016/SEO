@@ -50,6 +50,12 @@ def fetch_page(url):
     Fetches HTML content using requests
     Returns HTML content, final URL, and HTTPS status
     """
+    # Clean up the URL
+    url = url.strip()
+    
+    # Remove common user input issues
+    url = url.replace(' ', '')  # Remove any spaces
+    
     # Add protocol if missing
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url

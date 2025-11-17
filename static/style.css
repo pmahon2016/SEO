@@ -109,9 +109,16 @@ body {
 .form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     color: var(--text-primary);
     font-size: 1rem;
+}
+
+.helper-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    margin-top: -0.25rem;
 }
 
 .input-wrapper {
